@@ -1,0 +1,50 @@
+###
+Compile our project
+###
+compile(
+	out javac
+) {
+	$javac = saker.java.compile(
+		SourceDirectories: src/main/java,
+		ClassPath: saker.maven.classpath(saker.maven.resolve(
+			Pom: pom.xml,
+		)),
+	)
+}
+###
+Export the project into a Java archive
+###
+export(
+	out jar
+) {
+	$javac = include(compile)[javac]
+	$jar = saker.jar.create(
+		Resources: {
+			Directory: $javac[ClassDirectory],
+			Resources: **/*,
+		},
+	)
+}
+
+###
+Deploy the artifacts to GitHub packages
+###
+deploy() {
+	# TODO Replace USERNAME, REPOSITORY_NAME, and PERSONAL_ACCESS_TOKEN literals with your own
+	$jar = include(export)[jar]
+	saker.maven.deploy(
+		Artifacts: {
+			"pom": pom.xml,
+			"jar": $jar[Path],
+		},
+		Coordinates: "example.saker.build:maven-gh-packages:0.1.0",
+		RemoteRepository: {
+			Id: github,
+			Url: "https://maven.pkg.github.com/USERNAME/REPOSITORY_NAME",
+			Authentication: saker.maven.auth.account(
+				Username: USERNAME,
+				Password: PERSONAL_ACCESS_TOKEN,
+			),
+		}
+	)
+}
